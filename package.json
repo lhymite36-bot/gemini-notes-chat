@@ -1,0 +1,99 @@
+{
+  "name": "gemini-notes-chat",
+  "desktopName": "gemini-notes-chat.desktop",
+  "version": "1.0.0",
+  "description": "Desktop chat and notes app powered by the Google Gemini API. The API key stays on this computer.",
+  "main": "electron/main.js",
+  "author": "Gemini Notes Chat",
+  "license": "MIT",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --dir --publish never",
+    "dist": "electron-builder --publish never",
+    "dist:linux": "electron-builder --linux AppImage deb --publish never",
+    "dist:win": "electron-builder --win nsis portable --publish never",
+    "check": "node scripts/check-logic.js"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1"
+  },
+  "devDependencies": {
+    "electron": "^44.4.5",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "com.gemininotes.chat",
+    "productName": "Gemini Notes Chat",
+    "asar": true,
+    "npmRebuild": false,
+    "directories": {
+      "output": "dist",
+      "buildResources": "assets"
+    },
+    "files": [
+      "**/*",
+      "!docs/**",
+      "!scripts/**",
+      "!dist/**",
+      "!out/**",
+      "!**/*.md",
+      "!**/.env",
+      "!**/.env.*",
+      "!**/api-key*",
+      "!**/*apikey*"
+    ],
+    "linux": {
+      "artifactName": "GeminiNotesChat-${version}-${arch}.${ext}",
+      "executableName": "gemini-notes-chat",
+      "syncDesktopName": true,
+      "category": "Office",
+      "icon": "assets/icon.png",
+      "synopsis": "Chat with Gemini and keep local notes",
+      "description": "Desktop chat and dictation notes using the Google Gemini API. The API key stays on this computer.",
+      "maintainer": "Gemini Notes Chat",
+      "target": [
+        "AppImage",
+        "deb"
+      ]
+    },
+    "win": {
+      "icon": "assets/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "GeminiNotesChat-Setup-${version}.${ext}",
+      "shortcutName": "Gemini Notes Chat"
+    },
+    "portable": {
+      "artifactName": "GeminiNotesChat-Portable-${version}.${ext}"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "icon": "assets/icon.png",
+      "category": "public.app-category.productivity",
+      "artifactName": "GeminiNotesChat-${version}-${arch}.${ext}"
+    }
+  }
+}

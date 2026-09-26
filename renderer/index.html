@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; media-src 'self' blob:;">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gemini Notes Chat</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <button class="brand" type="button" id="brand-home">
+        <span class="logo" aria-hidden="true">G</span>
+        <span class="brand-copy">
+          <span class="brand-name">Gemini Notes</span>
+          <span class="brand-sub">Chat</span>
+        </span>
+      </button>
+      <nav class="nav" aria-label="Primary">
+        <button class="nav-btn active" data-nav="chat" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6.5A3.5 3.5 0 0 1 8.5 3h7A3.5 3.5 0 0 1 19 6.5v6A3.5 3.5 0 0 1 15.5 16H10l-4.2 3.2c-.7.5-1.8 0-1.8-.9V6.5Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+          <span>Chat</span>
+        </button>
+        <button class="nav-btn" data-nav="notes" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3.8h7.2L19 8.6V20a1.2 1.2 0 0 1-1.2 1.2H7A1.2 1.2 0 0 1 5.8 20V5A1.2 1.2 0 0 1 7 3.8Z" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M14 3.8V8.5H19M8.5 12.5h7M8.5 16h5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+          <span>Notes</span>
+        </button>
+        <button class="nav-btn" data-nav="settings" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2M6 6l1.6 1.6M16.4 16.4 18 18M18 6l-1.6 1.6M7.6 16.4 6 18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+          <span>Settings</span>
+        </button>
+      </nav>
+      <p id="sidebar-tip" class="sidebar-tip" hidden>Notes, chats, and your API key stay on this computer. Chat needs a network connection.</p>
+      <div class="sidebar-section" id="chat-sidebar">
+        <div class="section-head">
+          <span>Conversations</span>
+          <button id="new-chat" type="button" class="text-btn">New</button>
+        </div>
+        <div id="chat-list" class="chat-list" role="list"></div>
+      </div>
+      <footer class="sidebar-footer">
+        <div class="status-row"><span id="net-dot" class="dot"></span><span id="net-label">Checking network</span></div>
+        <div class="status-row"><span id="key-dot" class="dot"></span><span id="key-label">No API key</span></div>
+      </footer>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="titles">
+          <h1 id="view-title">Chat</h1>
+          <p id="view-subtitle" class="subtitle"></p>
+        </div>
+        <div class="top-actions">
+          <span id="model-pill" class="pill"></span>
+          <button id="top-delete-chat" type="button" class="btn ghost" hidden>Delete chat</button>
+        </div>
+      </header>
+
+      <div id="offline-banner" class="banner warn" hidden>
+        <span>Offline. Saved notes and past chats stay available. Sending a message needs a connection.</span>
+      </div>
+      <div id="key-banner" class="banner" hidden>
+        <span>Add a Gemini API key to send messages. Notes still work without one.</span>
+        <button type="button" id="banner-settings" class="btn tiny">Settings</button>
+      </div>
+
+      <section id="view-chat" class="view">
+        <div id="messages" class="messages" aria-live="polite">
+          <div id="chat-empty" class="empty">
+            <div class="empty-mark" aria-hidden="true">G</div>
+            <h2>Start a conversation</h2>
+            <p>Ask Gemini something. Any message can be saved as a note and read later offline.</p>
+            <div class="suggestions" id="suggestions"></div>
+          </div>
+        </div>
+        <form id="composer" class="composer">
+          <label class="sr-only" for="composer-input">Message</label>
+          <textarea id="composer-input" rows="1" placeholder="Message Gemini…" maxlength="100000"></textarea>
+          <button type="submit" id="send-btn" class="btn primary">Send</button>
+        </form>
+        <p id="composer-hint" class="hint"></p>
+      </section>
+
+      <section id="view-notes" class="view" hidden>
+        <div class="notes-layout">
+          <div class="note-pane">
+            <div class="note-toolbar">
+              <label class="sr-only" for="note-search">Search notes</label>
+              <input id="note-search" type="search" placeholder="Search notes">
+              <button id="new-note" class="btn primary" type="button">New</button>
+            </div>
+            <div id="note-list" class="note-list" role="list"></div>
+          </div>
+          <div class="editor-pane">
+            <div id="editor-empty" class="empty">
+              <h2>No note open</h2>
+              <p>Create a note, or pick one from the list. Everything here is stored on this computer.</p>
+            </div>
+            <form id="editor" class="editor" hidden>
+              <label class="sr-only" for="note-title">Title</label>
+              <input id="note-title" type="text" placeholder="Title" maxlength="200" autocomplete="off">
+              <div class="editor-tools">
+                <button type="button" id="dictate-btn" class="btn dictate-btn" title="Transcribe speech into this note">Dictate</button>
+                <label class="check" for="cleanup-toggle">
+                  <input type="checkbox" id="cleanup-toggle">
+                  Clean up &amp; title with Gemini
+                </label>
+                <button type="button" id="preview-btn" class="btn ghost">Preview</button>
+                <span id="record-status" class="record-status" role="status" hidden></span>
+              </div>
+              <p id="interim" class="interim" hidden></p>
+              <label class="sr-only" for="note-body">Note</label>
+              <textarea id="note-body" placeholder="Write a note, or press Dictate and speak."></textarea>
+              <div id="note-preview" class="markdown preview" hidden></div>
+              <div class="editor-actions">
+                <button type="button" id="cleanup-btn" class="btn">Clean up with Gemini</button>
+                <button type="submit" id="save-note" class="btn primary">Save note</button>
+                <button type="button" id="delete-note" class="btn danger ghost">Delete</button>
+              </div>
+              <p id="note-meta" class="hint"></p>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-settings" class="view" hidden>
+        <form id="settings-form" class="settings-card">
+          <h2>Gemini API key</h2>
+          <p class="lede">Paste a key from <button type="button" class="link-btn" id="open-ai-studio">Google AI Studio</button>. It is stored only in this app’s data folder and is encrypted with the operating system when that is available. The key is never written into the project.</p>
+          <label for="api-key">API key</label>
+          <div class="key-row">
+            <input id="api-key" type="password" autocomplete="off" spellcheck="false" placeholder="Paste your Gemini API key">
+            <button type="button" id="toggle-key" class="btn ghost">Show</button>
+          </div>
+          <p id="key-status" class="hint"></p>
+          <div class="row-actions">
+            <button type="button" id="test-key" class="btn">Test key</button>
+            <button type="button" id="reveal-key" class="btn ghost">Reveal saved key</button>
+            <button type="button" id="clear-key" class="btn danger ghost">Clear key</button>
+          </div>
+
+          <label for="model-select">Model</label>
+          <select id="model-select"></select>
+          <input id="model-custom" type="text" maxlength="80" placeholder="Custom model id, for example gemini-2.0-flash" hidden autocomplete="off" spellcheck="false">
+
+          <label for="speech-lang">Dictation language</label>
+          <select id="speech-lang"></select>
+
+          <div class="row-actions">
+            <button type="submit" class="btn primary" id="save-settings">Save settings</button>
+          </div>
+          <p id="settings-msg" class="hint" role="status"></p>
+
+          <h2>Data on this computer</h2>
+          <p>Notes, conversations, and your API key stay in this folder. Chat needs a network connection and a key. Opening saved notes does not.</p>
+          <code id="data-dir" class="path"></code>
+          <div class="row-actions">
+            <button type="button" id="open-data" class="btn ghost">Open data folder</button>
+          </div>
+
+          <h2>Shortcuts</h2>
+          <ul class="help-list">
+            <li><kbd>Ctrl</kbd> + <kbd>N</kbd> New chat</li>
+            <li><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>N</kbd> New note</li>
+            <li><kbd>Ctrl</kbd> + <kbd>,</kbd> Settings</li>
+            <li><kbd>Ctrl</kbd> + <kbd>S</kbd> Save the open note</li>
+            <li><kbd>Enter</kbd> Send · <kbd>Shift</kbd> + <kbd>Enter</kbd> new line</li>
+          </ul>
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+
+  <div id="modal" class="modal-backdrop" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <h2 id="modal-title"></h2>
+      <p id="modal-body"></p>
+      <div class="row-actions">
+        <button type="button" id="modal-cancel" class="btn ghost">Cancel</button>
+        <button type="button" id="modal-confirm" class="btn danger">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="format.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
