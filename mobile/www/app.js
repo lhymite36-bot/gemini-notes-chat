@@ -92,7 +92,7 @@
   }
   function titleFromText(text) {
     const line = String(text || '').split(/\r?\n/).map((s) => s.trim()).find(Boolean) || 'Untitled note';
-    const stripped = line.replace(/^[#>*\-\d.)\s]+/, '').trim() || line;
+    const stripped = line.replace(/^[#>*\-\d.)\s]+/, '').replace(/\*\*|__|`/g, '').trim() || line;
     return stripped.length <= 80 ? stripped : stripped.slice(0, 77).trimEnd() + '…';
   }
   function parseCleanup(text) {

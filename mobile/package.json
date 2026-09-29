@@ -5,9 +5,10 @@
   "description": "Mobile (PWA + Android) version of Gemini Notes Chat",
   "license": "MIT",
   "scripts": {
-    "sync": "cap sync android",
-    "apk:debug": "cap sync android && cd android && ./gradlew assembleDebug",
-    "apk:release": "cap sync android && cd android && ./gradlew assembleRelease"
+    "sync": "npm run vendor && cap sync android",
+    "apk:debug": "npm run sync && cd android && ./gradlew assembleDebug",
+    "apk:release": "npm run sync && cd android && ./gradlew assembleRelease",
+    "vendor": "cp node_modules/@capacitor/core/dist/capacitor.js www/capacitor.js"
   },
   "dependencies": {
     "@capacitor-community/speech-recognition": "7.0.1",

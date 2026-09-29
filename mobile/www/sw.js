@@ -1,7 +1,7 @@
 /* App-shell service worker. Gemini API calls are never cached. */
-const CACHE = 'gnc-shell-v1.0.0';
+const CACHE = 'gnc-shell-v1.0.1';
 const SHELL = [
-  './', './index.html', './styles.css', './app.js', './format.js', './manifest.json',
+  './', './index.html', './styles.css', './app.js', './format.js', './capacitor.js', './manifest.json',
   './icons/icon-192.png', './icons/icon-512.png', './icons/maskable-192.png', './icons/maskable-512.png', './icons/apple-touch-icon.png',
 ];
 self.addEventListener('install', (event) => {

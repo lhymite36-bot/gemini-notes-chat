@@ -37,7 +37,7 @@ jobs:
       - name: Install and sync Capacitor
         run: |
           npm ci
-          npx cap sync android
+          npm run sync
 
       - name: Restore signing key
         env:
