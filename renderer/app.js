@@ -944,7 +944,7 @@
     for (const model of models) {
       const option = document.createElement('option');
       option.value = model;
-      option.textContent = model + (model === 'gemini-2.0-flash' ? ' (default)' : '');
+      option.textContent = model + (model === 'gemini-3.8-flash' ? ' (default)' : '');
       modelSelect.appendChild(option);
     }
     const custom = document.createElement('option');

@@ -1,12 +1,15 @@
 const crypto = require('crypto');
 
-const DEFAULT_MODEL = 'gemini-2.0-flash';
+// Google limits 2.x models to projects that already used them; new AI Studio keys (AQ.…) cannot use them.
+const DEFAULT_MODEL = 'gemini-3.8-flash';
 const MODELS = [
-  'gemini-2.0-flash',
-  'gemini-2.0-flash-lite',
-  'gemini-1.5-flash',
-  'gemini-2.5-flash',
+  'gemini-3.8-flash',
+  'gemini-flash-latest',
+  'gemini-3.5-flash',
+  'gemini-3.5-flash-lite',
 ];
+// 1.x / 2.x models: saved settings using them migrate to the default.
+const LEGACY_MODEL_RE = /^gemini-(1\.0|1\.5|2\.0|2\.5)(-|$)/i;
 
 const DEFAULT_SPEECH_LANG = 'en-US';
 const SPEECH_LANGS = [
@@ -49,6 +52,7 @@ function sanitizeError(err) {
   return String(raw)
     .replace(/key=[^&\s]+/gi, 'key=REDACTED')
     .replace(/AIza[0-9A-Za-z\-_]{10,}/g, 'REDACTED_KEY')
+    .replace(/\bAQ\.[0-9A-Za-z\-_.]{10,}/g, 'REDACTED_KEY')
     .replace(/Bearer\s+[A-Za-z0-9\-._~+/]+=*/gi, 'Bearer REDACTED');
 }
 
@@ -108,7 +112,7 @@ function cleanDate(value) {
 
 function normalizeModel(model) {
   const value = String(model || '').trim();
-  if (/^[a-zA-Z0-9._-]{3,80}$/.test(value)) return value;
+  if (/^[a-zA-Z0-9._-]{3,80}$/.test(value) && !LEGACY_MODEL_RE.test(value)) return value;
   return DEFAULT_MODEL;
 }
 

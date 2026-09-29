@@ -187,3 +187,5 @@ body.keyboard-open .tabbar { display: none; }
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 .toast.err { color: var(--danger); }
+/* Error text can include an API "Details:" line. */
+.msg.error .bubble, .status.err, .hint.err, #toast.err { white-space: pre-wrap; word-break: break-word; }

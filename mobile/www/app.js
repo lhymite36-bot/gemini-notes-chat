@@ -2,10 +2,16 @@
 (function () {
   'use strict';
 
-  const APP_VERSION = '1.0.0';
+  const APP_VERSION = '1.1.1';
   const API_BASE = 'https://generativelanguage.googleapis.com/v1beta';
-  const DEFAULT_MODEL = 'gemini-2.0-flash';
-  const BUILTIN_MODELS = ['gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-1.5-flash'];
+  // Google limits the 2.x models to projects that already used them, so new keys (AQ.… "auth keys")
+  // get 404 "no longer available" or 401 ACCESS_TOKEN_TYPE_UNSUPPORTED on them. Default to a current stable model.
+  const DEFAULT_MODEL = 'gemini-3.8-flash';
+  // Tried in order (once each) when the chosen model is not available for the key.
+  const FALLBACK_MODELS = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-2.5-flash'];
+  const BUILTIN_MODELS = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.7-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-pro-preview', 'gemini-2.5-flash'];
+  // Retired / key-restricted families: saved settings using these are migrated to the default on startup.
+  const LEGACY_MODEL_RE = /^(models\/)?gemini-(1\.0|1\.5|2\.0|2\.5)(-|$)/i;
   const SPEECH_LANGS = [
     ['en-US', 'English (US)'], ['en-GB', 'English (UK)'], ['en-IN', 'English (India)'], ['es-ES', 'Spanish (Spain)'],
     ['es-MX', 'Spanish (Mexico)'], ['fr-FR', 'French'], ['de-DE', 'German'], ['pt-BR', 'Portuguese (Brazil)'],
@@ -50,6 +56,16 @@
     const m = String(load(K.model, DEFAULT_MODEL) || '').trim();
     return /^[a-zA-Z0-9._-]{3,80}$/.test(m) ? m : DEFAULT_MODEL;
   };
+
+  // Migrate old installs whose saved model is a 2.0 / 1.5 model (not available for newer keys).
+  (function migrateModel() {
+    try {
+      const saved = load(K.model, null);
+      if (typeof saved === 'string' && LEGACY_MODEL_RE.test(saved.trim())) save(K.model, DEFAULT_MODEL);
+      const listed = load(K.models, null);
+      if (Array.isArray(listed)) save(K.models, listed.filter((m) => typeof m === 'string' && !LEGACY_MODEL_RE.test(m)));
+    } catch (_) { /* ignore */ }
+  })();
 
   let messages = load(K.chat, []);
   let notes = load(K.notes, []);
@@ -111,11 +127,20 @@
     return { title: titleFromText(body).slice(0, 120), body };
   }
   function redact(s) {
-    return String(s || '').replace(/key=[^&\s]+/gi, 'key=REDACTED').replace(/AIza[0-9A-Za-z\-_]{10,}/g, 'REDACTED_KEY');
+    return String(s || '').replace(/key=[^&\s]+/gi, 'key=REDACTED').replace(/AIza[0-9A-Za-z\-_]{10,}/g, 'REDACTED_KEY').replace(/\bAQ\.[0-9A-Za-z\-_.]{10,}/g, 'REDACTED_KEY');
   }
+  // Always append the raw API status/reason/message so problems can be diagnosed from the phone.
   function friendlyError(err) {
+    const base = friendlyBase(err);
+    const details = err && err.details ? redact(err.details) : '';
+    return details && !base.includes(details) ? base + '\n\nDetails: ' + details : base;
+  }
+  function friendlyBase(err) {
     const message = redact(err && (err.friendly || err.message) || err);
     if (err && err.friendly) return err.friendly;
+    if (err && err.reason === 'ACCESS_TOKEN_TYPE_UNSUPPORTED') {
+      return 'Gemini did not accept this key for ' + (err.allTried ? 'any of the models tried' : 'the model' + (err.model ? ' ' + err.model : '')) + '. New AI Studio keys (AQ.…) only work with current models. Tap “Load models from my key” in Settings and pick one.';
+    }
     const lower = message.toLowerCase();
     if (lower.includes('api key not valid') || lower.includes('api_key_invalid') || lower.includes('permission denied') || (lower.includes('api key') && (lower.includes('invalid') || lower.includes('expired')))) {
       return 'Gemini rejected the API key. Check the key in Settings.';
@@ -151,14 +176,91 @@
     let data = null;
     try { data = await res.json(); } catch (_) { data = null; }
     if (!res.ok) {
-      const msg = (data && data.error && (data.error.message || data.error.status)) || ('HTTP ' + res.status);
-      throw new Error(msg + ' (' + res.status + ')');
+      const ge = (data && data.error) || {};
+      const reasons = (Array.isArray(ge.details) ? ge.details : []).map((d) => d && d.reason).filter(Boolean);
+      const msg = ge.message || ge.status || ('HTTP ' + res.status);
+      const e = new Error(msg + ' (' + res.status + ')');
+      e.status = res.status;
+      e.apiStatus = ge.status || '';
+      e.reason = reasons[0] || '';
+      e.details = ['HTTP ' + res.status, e.apiStatus, reasons.join(', ')].filter(Boolean).join(' ')
+        + (ge.message ? ': ' + String(ge.message).replace(/\s+/g, ' ').slice(0, 300) : '');
+      throw e;
     }
     return data;
   }
+  // True when the error means "this model does not exist / is not available for this key".
+  function isModelUnavailable(err) {
+    if (!err || err.friendly) return false;
+    const m = String(err.message || '').toLowerCase();
+    if (err.status === 404 || err.apiStatus === 'NOT_FOUND') return true;
+    // AQ.-style keys return this 401 for models the project may not use (e.g. 2.x), not for a bad key.
+    if (err.reason === 'ACCESS_TOKEN_TYPE_UNSUPPORTED') return true;
+    if (err.reason === 'API_KEY_INVALID' || m.includes('api key not valid')) return false;
+    if (!m.includes('model')) return false;
+    return m.includes('not found') || m.includes('not available') || m.includes('not supported')
+      || m.includes('no longer available') || m.includes('is not enabled') || m.includes('does not have access')
+      || m.includes('unsupported') || m.includes('deprecated') || m.includes('retired');
+  }
+  // Generate with the saved model; if it is unavailable, retry with each fallback model once and save the one that works.
   async function generate(contents, opts) {
     opts = opts || {};
-    const model = opts.model || getModel();
+    const first = opts.model || getModel();
+    try {
+      return await generateWith(first, contents, opts);
+    } catch (err) {
+      if (!isModelUnavailable(err)) throw err;
+      let lastErr = err;
+      const tried = new Set([first]);
+      // Google's error text sometimes names the replacement ("… use gemini-x-flash"): try that first.
+      const hint = /\b(?:use|try|migrate to)\s+(?:models\/)?(gemini-[a-z0-9.-]+[a-z0-9])/i.exec(String(err.message || ''));
+      const queue = (hint ? [hint[1]] : []).concat(FALLBACK_MODELS);
+      let discovered = false;
+      for (let i = 0; i <= queue.length; i++) {
+        if (i === queue.length) {
+          if (discovered) break;
+          // Last resort: ask the API which models this key can use and try the best few.
+          discovered = true;
+          try { (await listKeyModels()).slice(0, 3).forEach((m) => { if (!tried.has(m)) queue.push(m); }); } catch (_) { /* ignore */ }
+          if (i === queue.length) break;
+        }
+        const fb = queue[i];
+        if (tried.has(fb)) continue;
+        tried.add(fb);
+        try {
+          const text = await generateWith(fb, contents, opts);
+          if (!opts.model) {
+            save(K.model, fb);
+            toast(first + ' is not available for this key. Switched to ' + fb + '.');
+            if (currentView === 'settings') renderSettings();
+          }
+          return text;
+        } catch (e2) {
+          lastErr = e2;
+          if (!isModelUnavailable(e2)) throw e2;
+        }
+      }
+      if (lastErr && !lastErr.friendly) {
+        lastErr.allTried = true;
+        lastErr.details = (lastErr.details || lastErr.message) + ' [tried: ' + Array.from(tried).join(', ') + ']';
+      }
+      throw lastErr;
+    }
+  }
+  // Chat-capable Gemini models this key can use, best first (newest stable flash preferred).
+  async function listKeyModels() {
+    const data = await geminiRequest('/models?pageSize=200', { method: 'GET' }, 30000);
+    const names = (data.models || [])
+      .filter((m) => (m.supportedGenerationMethods || []).includes('generateContent'))
+      .map((m) => String(m.name || '').replace(/^models\//, ''))
+      .filter((n) => /^gemini/i.test(n) && !/embedding|tts|image|live|audio|transcribe|robotics|computer-use/i.test(n));
+    const score = (n) => {
+      const v = /gemini-(\d+(?:\.\d+)?)/.exec(n); const ver = v ? parseFloat(v[1]) : 0;
+      return (/flash/.test(n) ? 100 : 0) + ver * 10 - (/lite/.test(n) ? 5 : 0) - (/preview|exp/.test(n) ? 3 : 0) - (LEGACY_MODEL_RE.test(n) ? 1000 : 0);
+    };
+    return names.sort((a, b) => score(b) - score(a));
+  }
+  async function generateWith(model, contents, opts) {
     const body = { contents, generationConfig: { temperature: opts.temperature ?? 0.7, maxOutputTokens: 8192 } };
     if (opts.system) body.systemInstruction = { parts: [{ text: opts.system }] };
     const send = (b) => geminiRequest('/models/' + encodeURIComponent(model) + ':generateContent', {
@@ -166,13 +268,18 @@
     }, opts.timeout || 60000);
     let data;
     try {
-      data = await send(body);
-    } catch (err) {
-      const m = String(err && err.message || '').toLowerCase();
-      if (opts.system && (m.includes('systeminstruction') || m.includes('system instruction') || m.includes('developer instruction'))) {
-        delete body.systemInstruction;
+      try {
         data = await send(body);
-      } else throw err;
+      } catch (err) {
+        const m = String(err && err.message || '').toLowerCase();
+        if (opts.system && (m.includes('systeminstruction') || m.includes('system instruction') || m.includes('developer instruction'))) {
+          delete body.systemInstruction;
+          data = await send(body);
+        } else throw err;
+      }
+    } catch (err) {
+      if (err && !err.friendly) { err.model = model; if (err.details) err.details += ' [model: ' + model + ']'; }
+      throw err;
     }
     const cand = data && data.candidates && data.candidates[0];
     const text = cand && cand.content && Array.isArray(cand.content.parts)
@@ -660,7 +767,7 @@
   function renderSettings() {
     const key = getKey();
     keyInput.value = '';
-    keyInput.placeholder = key ? 'Saved key ••••' + key.slice(-4) + ' (paste to replace)' : 'Paste your key (AIza…)';
+    keyInput.placeholder = key ? 'Saved key ••••' + key.slice(-4) + ' (paste to replace)' : 'Paste your key (AIza… or AQ.…)';
     const ks = $('key-state');
     ks.textContent = key ? 'A key is saved on this device (ends in ' + key.slice(-4) + ').' : 'No key saved yet.';
     ks.className = 'hint' + (key ? ' ok' : '');
@@ -691,7 +798,7 @@
     $('api-key-toggle').textContent = show ? 'Hide' : 'Show';
   });
   $('api-key-save').addEventListener('click', () => {
-    const v = keyInput.value.trim();
+    const v = keyInput.value.trim().replace(/^["'`]+|["'`]+$/g, '').replace(/^(x-goog-api-key:|key=)\s*/i, '').trim();
     if (!v) { toast('Paste a key first.', true); return; }
     if (v.length < 10 || v.length > 256 || /\s/.test(v)) { toast('That API key does not look valid.', true); return; }
     localStorage.setItem(K.key, v);
@@ -730,11 +837,7 @@
     const btn = $('load-models');
     btn.disabled = true; btn.textContent = 'Loading…';
     try {
-      const data = await geminiRequest('/models?pageSize=200', { method: 'GET' }, 30000);
-      const names = (data.models || [])
-        .filter((m) => (m.supportedGenerationMethods || []).includes('generateContent'))
-        .map((m) => String(m.name || '').replace(/^models\//, ''))
-        .filter((n) => /^gemini/i.test(n) && !/embedding|tts|image|live|audio/i.test(n));
+      const names = await listKeyModels();
       if (!names.length) throw fail('No chat models were returned for this key.');
       save(K.models, names);
       renderSettings();

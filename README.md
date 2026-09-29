@@ -20,7 +20,7 @@ There is a phone version in [`mobile/`](mobile/) with the same three screens (**
 
 ### Android app (APK)
 
-1. On your Android phone, open the [latest release](https://github.com/lhymite36-bot/gemini-notes-chat/releases/latest) and download **GeminiNotesChat-1.0.0.apk**.
+1. On your Android phone, open the [latest release](https://github.com/lhymite36-bot/gemini-notes-chat/releases/latest) and download **GeminiNotesChat-1.1.1.apk**.
 2. Open the downloaded file. If Android says the install is blocked, tap **Settings** and turn on **Allow from this source** (the “Install unknown apps” permission for Chrome or your Files app), then go back and tap **Install**.
 3. If Play Protect warns about an unknown app, tap **More details › Install anyway**. The app is not on the Play Store, so Google does not recognize it; the source code is all in this repository.
 4. Open **Gemini Notes Chat**, go to **Settings**, paste your Gemini API key, and tap **Save key**.
@@ -84,7 +84,7 @@ npx electron --no-sandbox --disable-gpu .
 
 1. Open **Settings**.
 2. Paste the key from Google AI Studio.
-3. Choose a model. The default is `gemini-2.0-flash`. `gemini-1.5-flash` is also listed, and you can enter another model id.
+3. Choose a model. The default is `gemini-3.8-flash`. `gemini-flash-latest`, `gemini-3.5-flash`, and `gemini-3.5-flash-lite` are also listed, and you can enter another model id.
 4. Click **Save settings**. **Test key** checks the key against the selected model.
 
 The key is kept in `settings.json` inside the app data folder. **Settings** shows the exact path and can open that folder.
@@ -202,7 +202,7 @@ That writes `docs/screenshots/chat.png`, `notes.png`, and `settings.png`, then q
 
 ## Troubleshooting
 
-- **The key test fails.** Confirm the key in Google AI Studio and try `gemini-1.5-flash` or another model id if `gemini-2.0-flash` is not enabled for that key.
+- **The key test fails.** Confirm the key in Google AI Studio and try `gemini-flash-latest` or another model id. New AI Studio keys (starting with `AQ.`) cannot use the 2.x models (Google returns 404 or `401 ACCESS_TOKEN_TYPE_UNSUPPORTED`); the mobile app switches to a working model automatically and shows the raw API error under **Details**.
 - **“Could not reach Gemini.”** Chat needs the public Gemini API (`generativelanguage.googleapis.com`). A VPN, firewall, or offline network will block it. Notes still open.
 - **Dictation does nothing.** Allow the microphone. If Chromium’s speech service is blocked, the app switches to recording plus Gemini transcription when a key is saved.
 - **OS encryption unavailable.** On Linux this uses the desktop secret service. Without one, the key is stored in `settings.json` with user-only file permissions. The Settings screen says which mode is in use.

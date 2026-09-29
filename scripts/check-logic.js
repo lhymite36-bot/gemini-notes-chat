@@ -70,7 +70,10 @@ test('normalizes chats and drops empty ones', () => {
 });
 
 test('model and key validation', () => {
-  assert.strictEqual(logic.normalizeModel('gemini-2.0-flash'), 'gemini-2.0-flash');
+  assert.strictEqual(logic.normalizeModel('gemini-3.5-flash'), 'gemini-3.5-flash');
+  assert.strictEqual(logic.normalizeModel('gemini-2.0-flash'), logic.DEFAULT_MODEL);
+  assert.strictEqual(logic.normalizeModel('gemini-2.5-flash'), logic.DEFAULT_MODEL);
+  assert.strictEqual(logic.normalizeModel('gemini-1.5-flash'), logic.DEFAULT_MODEL);
   assert.strictEqual(logic.normalizeModel('../etc/passwd'), logic.DEFAULT_MODEL);
   assert.strictEqual(logic.normalizeLang('en-US'), 'en-US');
   assert.throws(() => logic.normalizeApiKey('short'), /does not look valid/);
