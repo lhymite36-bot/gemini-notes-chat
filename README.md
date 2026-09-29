@@ -14,6 +14,46 @@ Captured from the running app. Regenerate them with the command in [Capture scre
 
 ![Settings view](docs/screenshots/settings.png)
 
+## Mobile version (Android app + web app)
+
+There is a phone version in [`mobile/`](mobile/) with the same three screens (**Chat**, **Notes**, **Settings**) in a touch-friendly dark layout. It is free to use: you only need your own free Gemini API key from [Google AI Studio](https://aistudio.google.com/apikey).
+
+### Android app (APK)
+
+1. On your Android phone, open the [latest release](https://github.com/lhymite36-bot/gemini-notes-chat/releases/latest) and download **GeminiNotesChat-1.0.0.apk**.
+2. Open the downloaded file. If Android says the install is blocked, tap **Settings** and turn on **Allow from this source** (the “Install unknown apps” permission for Chrome or your Files app), then go back and tap **Install**.
+3. If Play Protect warns about an unknown app, tap **More details › Install anyway**. The app is not on the Play Store, so Google does not recognize it; the source code is all in this repository.
+4. Open **Gemini Notes Chat**, go to **Settings**, paste your Gemini API key, and tap **Save key**.
+5. The first time you tap the mic, allow the **Microphone** permission.
+
+Voice dictation in the app uses Android’s built-in speech recognition (the Google app / “Speech Recognition & Synthesis”). It usually needs an internet connection. Android pauses listening when you stop talking; the app restarts it automatically until you tap the mic again, so you may hear a short beep between phrases.
+
+### Web app (iPhone, or Android without installing an APK)
+
+Open **https://lhymite36-bot.github.io/gemini-notes-chat/** on your phone.
+
+- **Android (Chrome):** menu **⋮ › Add to Home screen** (or **Install app**).
+- **iPhone (Safari):** **Share** button **› Add to Home Screen**.
+
+It opens full-screen like an app and notes can be read offline. Voice dictation in the web version works best in **Chrome on Android**. On iPhone, Safari’s speech recognition is limited or missing; use the mic key on the iPhone keyboard to dictate into a note instead.
+
+### Privacy
+
+The API key, chats, and notes are stored only on the phone (app storage / `localStorage`). The key is sent only to Google’s Gemini API (`generativelanguage.googleapis.com`). Uninstalling the app or clearing site data deletes them; use **Settings › Export backup** first if you want a copy.
+
+### Build the APK yourself
+
+GitHub Actions builds it on every push to `mobile/` (workflow **Android APK**, artifact `GeminiNotesChat-apk`). Locally you need Node 20+, JDK 21, and the Android SDK:
+
+```bash
+cd mobile
+npm install
+npx cap sync android
+cd android && ./gradlew assembleRelease   # signed with the debug key unless ANDROID_KEYSTORE_PATH etc. are set
+```
+
+The web files live in `mobile/www/` (plain HTML/CSS/JS, no build step) and are deployed to GitHub Pages by the **Deploy mobile web app** workflow.
+
 ## Requirements
 
 - Node.js 20 or newer. This project uses Electron 44, whose package metadata asks for Node 22. On Node 20, `npm install` may print an `EBADENGINE` warning; the app still installs and runs.

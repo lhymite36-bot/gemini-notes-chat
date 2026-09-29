@@ -36,6 +36,8 @@
     },
     "files": [
       "**/*",
+      "!mobile/**",
+      "!.github/**",
       "!docs/**",
       "!scripts/**",
       "!dist/**",

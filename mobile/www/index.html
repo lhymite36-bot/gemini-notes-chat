@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="theme-color" content="#0c0e14">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="Chat with Google Gemini and keep dictated notes on your phone.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Gemini Notes">
+  <title>Gemini Notes Chat</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+    <!-- CHAT -->
+    <section id="view-chat" class="view active" aria-label="Chat">
+      <header class="topbar">
+        <img class="logo" src="icons/icon-192.png" alt="">
+        <h1>Chat</h1>
+        <button id="chat-clear" class="icon-btn" type="button" aria-label="New chat" title="New chat">
+          <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+      </header>
+      <div id="chat-log" class="scroll chat-log" aria-live="polite"></div>
+      <form id="chat-form" class="composer">
+        <textarea id="chat-input" rows="1" placeholder="Message Gemini…" aria-label="Message" enterkeyhint="send"></textarea>
+        <button id="chat-send" class="send-btn" type="submit" aria-label="Send">
+          <svg viewBox="0 0 24 24"><path d="M4 12l16-8-6 16-2-7z"/></svg>
+        </button>
+      </form>
+    </section>
+
+    <!-- NOTES LIST -->
+    <section id="view-notes" class="view" aria-label="Notes">
+      <header class="topbar">
+        <img class="logo" src="icons/icon-192.png" alt="">
+        <h1>Notes</h1>
+        <button id="note-new" class="icon-btn" type="button" aria-label="New note" title="New note">
+          <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+      </header>
+      <div class="search-wrap"><input id="note-search" type="search" placeholder="Search notes" aria-label="Search notes"></div>
+      <ul id="note-list" class="scroll note-list"></ul>
+      <button id="fab-dictate" class="fab" type="button" aria-label="Dictate a new note">
+        <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+      </button>
+    </section>
+
+    <!-- NOTE EDITOR -->
+    <section id="view-editor" class="view" aria-label="Note editor">
+      <header class="topbar">
+        <button id="editor-back" class="icon-btn" type="button" aria-label="Back to notes">
+          <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <h1 id="editor-heading">Note</h1>
+        <button id="editor-delete" class="icon-btn danger" type="button" aria-label="Delete note" title="Delete note">
+          <svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>
+        </button>
+      </header>
+      <div class="scroll editor">
+        <input id="note-title" class="note-title" type="text" placeholder="Title" aria-label="Note title" maxlength="200">
+        <textarea id="note-body" class="note-body" placeholder="Write, or tap the mic and speak…" aria-label="Note text"></textarea>
+        <p id="dictation-status" class="status" role="status"></p>
+      </div>
+      <div class="editor-actions">
+        <button id="note-mic" class="mic-btn" type="button" aria-label="Start dictation" aria-pressed="false">
+          <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+        </button>
+        <button id="note-cleanup" class="btn secondary" type="button">✨ Clean up</button>
+        <button id="note-save" class="btn primary" type="button">Save</button>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section id="view-settings" class="view" aria-label="Settings">
+      <header class="topbar">
+        <img class="logo" src="icons/icon-192.png" alt="">
+        <h1>Settings</h1>
+      </header>
+      <div class="scroll settings">
+        <div class="card">
+          <label for="api-key">Gemini API key</label>
+          <div class="row">
+            <input id="api-key" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Paste your key (AIza…)">
+            <button id="api-key-toggle" class="btn secondary small" type="button">Show</button>
+          </div>
+          <p class="hint">Get a free key at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">aistudio.google.com/apikey</a>. It is stored only on this device and sent only to Google’s Gemini API.</p>
+          <p id="key-state" class="hint"></p>
+          <div class="row">
+            <button id="api-key-save" class="btn primary" type="button">Save key</button>
+            <button id="api-key-test" class="btn secondary" type="button">Test</button>
+            <button id="api-key-remove" class="btn ghost danger" type="button">Remove</button>
+          </div>
+        </div>
+        <div class="card">
+          <label for="model">Model</label>
+          <select id="model"></select>
+          <div id="custom-model-wrap" class="row hidden">
+            <input id="custom-model" type="text" autocapitalize="off" spellcheck="false" placeholder="e.g. gemini-2.5-flash">
+          </div>
+          <button id="load-models" class="btn secondary" type="button">Load models from my key</button>
+        </div>
+        <div class="card">
+          <label for="speech-lang">Dictation language</label>
+          <select id="speech-lang"></select>
+          <label class="check"><input id="auto-cleanup" type="checkbox"> Clean up &amp; title with Gemini when I stop dictating</label>
+          <p id="speech-support" class="hint"></p>
+        </div>
+        <div class="card">
+          <label>Data</label>
+          <p class="hint">Chats and notes are saved on this device. Notes open offline.</p>
+          <div class="row">
+            <button id="export-data" class="btn secondary" type="button">Export backup</button>
+            <button id="wipe-data" class="btn ghost danger" type="button">Delete all</button>
+          </div>
+          <p class="hint" id="app-version"></p>
+        </div>
+      </div>
+    </section>
+
+    <nav class="tabbar" aria-label="Main">
+      <button class="tab active" data-view="chat" type="button">
+        <svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg><span>Chat</span>
+      </button>
+      <button class="tab" data-view="notes" type="button">
+        <svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h5"/></svg><span>Notes</span>
+      </button>
+      <button class="tab" data-view="settings" type="button">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><span>Settings</span>
+      </button>
+    </nav>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </div>
+  <script src="format.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

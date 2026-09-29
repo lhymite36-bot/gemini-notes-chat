@@ -1,0 +1,10 @@
+{
+  "appId": "com.gemininotes.chat",
+  "appName": "Gemini Notes Chat",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false,
+    "backgroundColor": "#0c0e14",
+    "adjustMarginsForEdgeToEdge": "auto"
+  }
+}
